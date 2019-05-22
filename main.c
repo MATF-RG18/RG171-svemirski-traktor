@@ -415,7 +415,7 @@ static void on_display(void)
     /* Iscrtavanje prepreka. */
     for(int i = 0; i < NUM_OF_OBSTACLES; i++){
       glPushMatrix();
-        glTranslatef(obstacles_x[i], obstacles_y[i], obstacles_z[i]);
+        glTranslatef(obstacles_x[i] + x_road, obstacles_y[i], obstacles_z[i]);
         glutSolidSphere(0.5, 40, 40);
       glPopMatrix();
     }
