@@ -291,12 +291,10 @@ static void on_display(void)
               0.0, 1.0, 0.0);
 
     /* Iscrtavanje neba (pozadine). */
-    draw_skybox();
+    draw_skyplane();
 
     /* Iscrtavanje traktora. */
     draw_tractor();
-
-
 
     /* Nova slika se salje na ekran. */
     glutSwapBuffers();
