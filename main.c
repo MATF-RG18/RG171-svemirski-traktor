@@ -4,11 +4,19 @@
 #include <GL/gl.h>
 #include <GL/glu.h>
 #include <GL/glut.h>
+#include "image.h"
 
+/* Konstante za velicinu traktora. */
 #define SMALL_WHEEL_WIDTH (0.25)
 #define SMALL_WHEEL_R (0.25)
 #define BIG_WHEEL_WIDTH (0.3)
 #define BIG_WHEEL_R (0.5)
+
+/* Imena fajlova sa teksturama. */
+#define SKY "sky.bmp"
+
+/* Identifikatori tekstura. */
+static GLuint textures[1];
 
 /* Dimenzije prozora */
 static int window_width, window_height;
@@ -60,6 +68,9 @@ int main(int argc, char **argv)
 
 static void initialize(void)
 {
+    /* Objekti koji predstavljaju teksture ucitane iz fajla. */
+    Image* sky;
+
     /* Pozicija i boja svetla */
     GLfloat light_ambient[] = { 0.3, 0.3, 0.3, 1 };
     GLfloat light_diffuse[] = { 0.7, 0.7, 0.7, 1 };
@@ -71,8 +82,34 @@ static void initialize(void)
     /* Ukljucuje se testiranje z-koordinate piksela. */
     glEnable(GL_DEPTH_TEST);
 
-    /* Ukljucujemo koriscenje glColor definisanih boja za materijale */
-    glEnable(GL_COLOR_MATERIAL);
+    /* Ukljucuju se teksture. */
+    glEnable(GL_TEXTURE_2D);
+    glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+
+    /* Inicijalizacija objekta koji ce sadrzati teksture. */
+    sky = image_init(0, 0);
+    image_read(sky, SKY);
+    glGenTextures(1, textures);
+
+    /* Prva tekstura. */
+    glBindTexture(GL_TEXTURE_2D, textures[0]);
+    glTexParameteri(GL_TEXTURE_2D,
+                    GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D,
+                    GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D,
+                    GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D,
+                    GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB,
+                 sky->width, sky->height, 0,
+                 GL_RGB, GL_UNSIGNED_BYTE, sky->pixels);
+
+     /* Iskljucujemo aktivnu teksturu */
+     glBindTexture(GL_TEXTURE_2D, 0);
+
+     /* Unistava se objekat za citanje tekstura iz fajla. */
+     image_done(sky);
 
     /* Ukljucuje se osvjetljenje i podesavaju parametri svetla. */
     glEnable(GL_LIGHTING);
@@ -90,6 +127,8 @@ static void on_keyboard(unsigned char key, int x, int y)
     switch (key) {
     /* Pritiskom ESC izlazi se iz igre. */
     case 27:
+        /* Oslobadjaju se korisceni resursi i zavrsava se program. */
+        glDeleteTextures(1, textures);
         exit(0);
         break;
     }
@@ -182,7 +221,7 @@ static void draw_cabin()
 }
 
 /* Funkcija za iscrtavanje traktora. */
-void draw_tractor()
+static void draw_tractor()
 {
     glPushMatrix();
       glTranslatef(x_tractor + 3.0, y_tractor, z_tractor);
@@ -195,10 +234,54 @@ void draw_tractor()
     glPopMatrix();
 }
 
+/* Funkcija koja iscrtava pozadinu. Implementirana je kao dve normalne ravni. */
+static void draw_skyplane(){
+    glBindTexture(GL_TEXTURE_2D, textures[0]);
+
+    /* Gornja ravan. */
+    glBegin(GL_QUADS);
+        glNormal3f(0, 0, 1);
+
+        glTexCoord2f(0, 0);
+        glVertex3f(0, 0, -6);
+
+        glTexCoord2f(12, 0);
+        glVertex3f(0, 6, -6);
+
+        glTexCoord2f(12, 6);
+        glVertex3f(0, 6, 6);
+
+        glTexCoord2f(0, 6);
+        glVertex3f(0, 0, 6);
+    glEnd();
+
+    /* Donja ravan. */
+    glBegin(GL_QUADS);
+        glNormal3f(0, 0, 1);
+
+        glTexCoord2f(0, 0);
+        glVertex3f(-5, -1, -10);
+
+        glTexCoord2f(12, 0);
+        glVertex3f(10, -1, -10);
+
+        glTexCoord2f(12, 6);
+        glVertex3f(10, -1, 10);
+
+        glTexCoord2f(0, 6);
+        glVertex3f(-5, -1, 10);
+    glEnd();
+
+    /* Iskljucujemo aktivnu teksturu */
+    glBindTexture(GL_TEXTURE_2D, 0);
+}
+
+
 static void on_display(void)
 {
     /* Brise se prethodni sadrzaj prozora. */
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
 
     /* Postavljanje perspektive. */
     glMatrixMode(GL_MODELVIEW);
@@ -207,8 +290,13 @@ static void on_display(void)
               0.0, 0.0, 0.0,
               0.0, 1.0, 0.0);
 
+    /* Iscrtavanje neba (pozadine). */
+    draw_skybox();
+
     /* Iscrtavanje traktora. */
     draw_tractor();
+
+
 
     /* Nova slika se salje na ekran. */
     glutSwapBuffers();
