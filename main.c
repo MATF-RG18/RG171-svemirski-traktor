@@ -18,9 +18,9 @@
 #define ROAD "stars.bmp"
 
 /* Ostale konstante. */
-#define INTERVAL 10
+#define INTERVAL 7
 #define ROAD_TIMER_ID 1
-#define NUM_OF_OBSTACLES 50
+#define NUM_OF_OBSTACLES 100
 
 /* Identifikatori tekstura. */
 static GLuint textures[2];
@@ -44,7 +44,7 @@ static void draw_wheel(float wheel_r, float wheel_width);
 static void generate_obstacles(int n, int obstacles_x[], int obstacles_y[], int obstacles_z[]);
 
 /* Koordinate traktora. */
-static float x_tractor = 0;
+static float x_tractor = 3.0;
 static float y_tractor = -0.5;
 static float z_tractor = 0;
 
@@ -204,12 +204,16 @@ static void on_special_key_press(int key, int x, int y)
         case GLUT_KEY_DOWN:
           break;
         case GLUT_KEY_LEFT:
-            z_tractor += 1;
-            glutPostRedisplay();
+            if(game_active && z_tractor < road_width/2) {
+              z_tractor += 1;
+              glutPostRedisplay();
+            }
             break;
         case GLUT_KEY_RIGHT:
-            z_tractor -= 1;
-            glutPostRedisplay();
+            if(game_active && z_tractor > -road_width/2) {
+              z_tractor -= 1;
+              glutPostRedisplay();
+            }
             break;
     }
 }
@@ -299,7 +303,7 @@ static void draw_cabin(void)
 static void draw_tractor(void)
 {
     glPushMatrix();
-      glTranslatef(x_tractor + 3.0, y_tractor, z_tractor);
+      glTranslatef(x_tractor, y_tractor, z_tractor);
       glColor3f(0, 0, 0);
       glutWireCube(1);
       glColor3f(0.5, 0.5, 0.5);
@@ -376,6 +380,13 @@ static void draw_road(void)
   glBindTexture(GL_TEXTURE_2D, 0);
 }
 
+static int has_crashed(float x, float y, float z) {
+    if(z == z_tractor && x >= x_tractor - 0.5 && x <= x_tractor + 0.5) {
+      return 1;
+    }
+    return 0;
+}
+
 /* Funkcija koja iscrtava n prepreka. */
 static void generate_obstacles(int n, int obstacles_x[], int obstacles_y[], int obstacles_z[])
 {
@@ -416,9 +427,15 @@ static void on_display(void)
     for(int i = 0; i < NUM_OF_OBSTACLES; i++){
       glPushMatrix();
         glTranslatef(obstacles_x[i] + x_road, obstacles_y[i], obstacles_z[i]);
-        glutSolidSphere(0.5, 40, 40);
+        glutSolidSphere(0.35, 40, 40);
       glPopMatrix();
+      if(has_crashed(obstacles_x[i] + x_road, obstacles_y[i], obstacles_z[i])) {
+        printf("KRAJ IGRE");
+        game_active = 0;
+      }
     }
+
+    /* Ispisivanje rezultata. */
 
     /* Iscrtavanje traktora. */
     draw_tractor();
