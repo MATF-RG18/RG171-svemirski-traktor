@@ -17,9 +17,10 @@
 #define SKY "sky.bmp"
 #define ROAD "stars.bmp"
 
-/* Konstante za tajmer. */
+/* Ostale konstante. */
 #define INTERVAL 10
 #define ROAD_TIMER_ID 1
+#define NUM_OF_OBSTACLES 50
 
 /* Identifikatori tekstura. */
 static GLuint textures[2];
@@ -40,18 +41,25 @@ static void on_timer(int timer_id);
 /* Deklaracije funkcija koje iscrtavaju sadrzaj igre. */
 static void draw_tractor(void);
 static void draw_wheel(float wheel_r, float wheel_width);
+static void generate_obstacles(int n, int obstacles_x[], int obstacles_y[], int obstacles_z[]);
 
 /* Koordinate traktora. */
 static float x_tractor = 0;
-static float y_tractor = 0;
+static float y_tractor = -0.5;
 static float z_tractor = 0;
 
 /* Koordinate staze. */
 static float x_road = 10; // Mora pocinjati malo iza traktora.
-static float y_road = -0.5;
+static float y_road = -1;
 static float z_road = 0;
 static float road_width = 6;
 static float road_length = 500;
+
+/* Koordinate prepreka. */
+static int obstacles_x[NUM_OF_OBSTACLES];
+static int obstacles_y[NUM_OF_OBSTACLES];
+static int obstacles_z[NUM_OF_OBSTACLES];
+
 /* Oznaka za da li je igra u toku ili ne. */
 static int game_active = 1;
 
@@ -73,6 +81,12 @@ int main(int argc, char **argv)
     glutDisplayFunc(on_display);
     glutSpecialFunc(on_special_key_press);
     glutTimerFunc(INTERVAL, on_timer, ROAD_TIMER_ID);
+
+    /* Random seed. */
+    srand(time(NULL));
+
+    /* Generisanje koordinata za prepreke. */
+    generate_obstacles(NUM_OF_OBSTACLES, obstacles_x, obstacles_y, obstacles_z);
 
     /* Obavlja se OpenGL inicijalizacija. */
     initialize();
@@ -295,7 +309,7 @@ static void draw_tractor(void)
     glPopMatrix();
 }
 
-/* Funkcija koja iscrtava pozadinu. Implementirana je kao dve normalne ravni. */
+/* Funkcija koja iscrtava pozadinu. Implementirana je kao dve ravni. */
 static void draw_skyplane(void)
 {
     glBindTexture(GL_TEXTURE_2D, textures[0]);
@@ -305,16 +319,16 @@ static void draw_skyplane(void)
         glNormal3f(1, 0, 0);
 
         glTexCoord2f(0, 0);
-        glVertex3f(-5, 0, -10);
+        glVertex3f(-10, -100, -100);
 
-        glTexCoord2f(3, 0);
-        glVertex3f(-5, 6, -10);
+        glTexCoord2f(20, 0);
+        glVertex3f(-15, 100, -100);
 
-        glTexCoord2f(3, 3);
-        glVertex3f(-5, 6, 10);
+        glTexCoord2f(20, 20);
+        glVertex3f(-15, 100, 100);
 
-        glTexCoord2f(0, 3);
-        glVertex3f(-5, 0, 10);
+        glTexCoord2f(0, 20);
+        glVertex3f(-10, -100, 100);
     glEnd();
 
     /* Donja ravan. */
@@ -322,16 +336,16 @@ static void draw_skyplane(void)
         glNormal3f(0, 1, 0);
 
         glTexCoord2f(0, 0);
-        glVertex3f(-10, -1, -10);
+        glVertex3f(-150, 4, -100);
 
-        glTexCoord2f(3, 0);
-        glVertex3f(10, -1, -10);
+        glTexCoord2f(20, 0);
+        glVertex3f(10, -2, -100);
 
-        glTexCoord2f(3, 3);
-        glVertex3f(10, -1, 10);
+        glTexCoord2f(20, 20);
+        glVertex3f(10, -2, 100);
 
-        glTexCoord2f(0, 3);
-        glVertex3f(-10, -1, 10);
+        glTexCoord2f(20, 20);
+        glVertex3f(-150, 4, 100);
     glEnd();
 
     /* Iskljucujemo aktivnu teksturu */
@@ -362,6 +376,22 @@ static void draw_road(void)
   glBindTexture(GL_TEXTURE_2D, 0);
 }
 
+/* Funkcija koja iscrtava n prepreka. */
+static void generate_obstacles(int n, int obstacles_x[], int obstacles_y[], int obstacles_z[])
+{
+
+  // float distance_between_obstacles = (road_length - 10) / (float)n;
+  int x_obstacle = -5;
+  int y_obstacle = y_road + 1;
+  for(int i = 0; i < n; i++) {
+    /* Posto imamo 5 "linija" na stazi, trebaju nam koo od -2 do 2. */
+    int z_obstacle = (rand() % 5) - 2;
+    obstacles_x[i] = x_obstacle*i;
+    obstacles_y[i] = y_obstacle;
+    obstacles_z[i] = z_obstacle;
+  }
+}
+
 
 static void on_display(void)
 {
@@ -380,10 +410,15 @@ static void on_display(void)
     draw_skyplane();
 
     /* Iscrtavanje staze. */
-    if(game_active){
-
-    }
     draw_road();
+
+    /* Iscrtavanje prepreka. */
+    for(int i = 0; i < NUM_OF_OBSTACLES; i++){
+      glPushMatrix();
+        glTranslatef(obstacles_x[i], obstacles_y[i], obstacles_z[i]);
+        glutSolidSphere(0.5, 40, 40);
+      glPopMatrix();
+    }
 
     /* Iscrtavanje traktora. */
     draw_tractor();
