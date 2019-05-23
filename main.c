@@ -9,8 +9,12 @@
 #include "funkcije.h"
 
 /* Imena fajlova sa teksturama. */
-#define SKY "sky.bmp"
-#define ROAD "stars.bmp"
+#define SKY "textures/sky.bmp"
+#define ROAD "textures/stars.bmp"
+#define MARS "textures/mars.bmp"
+#define JUPITER "textures/jupiter.bmp"
+#define MERCURY "textures/mercury.bmp"
+#define NEPTUNE "textures/neptune.bmp"
 
 /* Ostale konstante. */
 #define INTERVAL 7
@@ -18,7 +22,7 @@
 #define NUM_OF_OBSTACLES 100
 
 /* Identifikatori tekstura. */
-static GLuint textures[2];
+static GLuint textures[6];
 
 /* Dimenzije prozora */
 static int window_width, window_height;
@@ -37,9 +41,10 @@ static void on_timer(int timer_id);
 static float x_tractor = 3.0;
 static float y_tractor = -0.5;
 static float z_tractor = 0;
+static float wheel_rotation = 0;
 
 /* Koordinate staze. */
-static float x_road = 10; // Mora pocinjati malo iza traktora.
+static float x_road = 10;
 static float y_road = -1;
 static float z_road = 0;
 static float road_width = 6;
@@ -49,9 +54,10 @@ static float road_length = 500;
 static int obstacles_x[NUM_OF_OBSTACLES];
 static int obstacles_y[NUM_OF_OBSTACLES];
 static int obstacles_z[NUM_OF_OBSTACLES];
+static int obstacles_type[NUM_OF_OBSTACLES];
 
 /* Oznaka za da li je igra u toku ili ne. */
-static int game_active = 1;
+static int game_active = 0;
 
 int main(int argc, char **argv)
 {
@@ -76,7 +82,8 @@ int main(int argc, char **argv)
     srand(time(NULL));
 
     /* Generisanje koordinata za prepreke. */
-    generate_obstacles(NUM_OF_OBSTACLES, obstacles_x, obstacles_y, obstacles_z, y_road);
+    generate_obstacles(NUM_OF_OBSTACLES, obstacles_x, obstacles_y, obstacles_z,
+       obstacles_type, y_road);
 
     /* Obavlja se OpenGL inicijalizacija. */
     initialize();
@@ -89,10 +96,10 @@ int main(int argc, char **argv)
 
 static void initialize(void)
 {
-    /* Objekti koji predstavljaju teksture ucitane iz fajla. */
+    /* Objekat koji se koristi za ucitavanje tekstura iz fajla. */
     Image* image;
 
-    /* Pozicija i boja svetla */
+    /* Pozicija i boja svetla. Sve koordinate jednake = belo svetlo. */
     GLfloat light_ambient[] = { 0.3, 0.3, 0.3, 1 };
     GLfloat light_diffuse[] = { 0.7, 0.7, 0.7, 1 };
     GLfloat light_specular[] = { 0.9, 0.9, 0.9, 1 };
@@ -114,45 +121,21 @@ static void initialize(void)
     glEnable(GL_TEXTURE_2D);
     glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
 
-    /* Inicijalizacija objekta koji ce sadrzati teksture. */
+    /* Inicijalizacija objekta kojim cemo ucitavati. */
     image = image_init(0, 0);
 
     /* Generisanje identifikatora teksture. */
-    glGenTextures(2, textures);
+    glGenTextures(6, textures);
 
-    /* Kreiranje teksture. */
-    image_read(image, SKY);
+    /* Ucitavanje tekstura za nebo i stazu. */
+    load_repeating_texture(image, SKY, textures[0]);
+    load_repeating_texture(image, ROAD, textures[1]);
 
-    /* Prva tekstura. */
-    glBindTexture(GL_TEXTURE_2D, textures[0]);
-    glTexParameteri(GL_TEXTURE_2D,
-                    GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D,
-                    GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D,
-                    GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D,
-                    GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB,
-                 image->width, image->height, 0,
-                 GL_RGB, GL_UNSIGNED_BYTE, image->pixels);
-
-     /* Kreiranje teksture. */
-     image_read(image, ROAD);
-
-    /* Druga tekstura. */
-    glBindTexture(GL_TEXTURE_2D, textures[1]);
-    glTexParameteri(GL_TEXTURE_2D,
-                    GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D,
-                    GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D,
-                    GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D,
-                    GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB,
-                 image->width, image->height, 0,
-                 GL_RGB, GL_UNSIGNED_BYTE, image->pixels);
+    /* Ucitavanje tekstura za planete. */
+    load_planet_texture(image, MARS, textures[2]);
+    load_planet_texture(image, JUPITER, textures[3]);
+    load_planet_texture(image, MERCURY, textures[4]);
+    load_planet_texture(image, NEPTUNE, textures[5]);
 
      /* Iskljucujemo aktivnu teksturu */
      glBindTexture(GL_TEXTURE_2D, 0);
@@ -170,13 +153,14 @@ static void on_keyboard(unsigned char key, int x, int y)
     /* Pritiskom ESC izlazi se iz igre. */
     case 27:
         /* Oslobadjaju se korisceni resursi i zavrsava se program. */
-        glDeleteTextures(2, textures);
+        glDeleteTextures(6, textures);
         exit(0);
         break;
-    /* Pritiskom na 'g' (go), zapocinje se igra. */
-    case 'g':
-    case 'G':
+    /* Pritiskom na 's' (start), zapocinje se igra. */
+    case 's':
+    case 'S':
         game_active = 1;
+        glutTimerFunc(INTERVAL, on_timer, ROAD_TIMER_ID);
         break;
     /* Pritiskom na 'p' (pause), pauzira se igra. */
     case 'p':
@@ -194,13 +178,13 @@ static void on_special_key_press(int key, int x, int y)
         case GLUT_KEY_DOWN:
           break;
         case GLUT_KEY_LEFT:
-            if(game_active && z_tractor < road_width/2) {
+            if(game_active && z_tractor < road_width / 2) {
               z_tractor += 1;
               glutPostRedisplay();
             }
             break;
         case GLUT_KEY_RIGHT:
-            if(game_active && z_tractor > -road_width/2) {
+            if(game_active && z_tractor > -road_width / 2) {
               z_tractor -= 1;
               glutPostRedisplay();
             }
@@ -227,20 +211,21 @@ static void on_timer(int timer_id) {
     if (!game_active)
         return;
 
-    /* Pomeramo ravan koja predstavlja put pozitivno u x pravcu, cime dobijamo
-     * izluziju pomeranja traktora unapred.
-     */
+    // Pomeramo ravan koja predstavlja put pozitivno u x pravcu, cime dobijamo
+    // izluziju pomeranja traktora unapred.
     x_road+=0.1;
 
     glutPostRedisplay();
-    glutTimerFunc(INTERVAL, on_timer, ROAD_TIMER_ID);
+    if(game_active) {
+      glutTimerFunc(INTERVAL, on_timer, ROAD_TIMER_ID);
+    }
 }
 
 static void on_display(void)
 {
     /* Brise se prethodni sadrzaj prozora. */
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
+    glEnable(GL_COLOR_MATERIAL);
 
     /* Postavljanje perspektive. */
     glMatrixMode(GL_MODELVIEW);
@@ -259,18 +244,24 @@ static void on_display(void)
     for(int i = 0; i < NUM_OF_OBSTACLES; i++){
       glPushMatrix();
         glTranslatef(obstacles_x[i] + x_road, obstacles_y[i], obstacles_z[i]);
-        glutSolidSphere(0.35, 40, 40);
+        if(obstacles_type[i] == 0)
+          draw_star();
+        else
+          draw_planet(textures[1 + obstacles_type[i]]);
       glPopMatrix();
-      if(has_crashed(x_tractor, y_tractor, z_tractor, obstacles_x[i] + x_road, obstacles_y[i], obstacles_z[i])) {
-        printf("KRAJ IGRE");
+      if(has_crashed(x_tractor, y_tractor, z_tractor, obstacles_x[i] + x_road,
+         obstacles_y[i], obstacles_z[i])) {
         game_active = 0;
+        // TODO: Ekran za kraj igre.
       }
     }
 
     /* Ispisivanje rezultata. */
-
+    // TODO: Funkcija za ispis teksta i ispis rezultata.
+    
     /* Iscrtavanje traktora. */
-    draw_tractor(x_tractor, y_tractor, z_tractor);
+    draw_tractor(x_tractor, y_tractor, z_tractor, wheel_rotation);
+    wheel_rotation-=1;
 
     /* Nova slika se salje na ekran. */
     glutSwapBuffers();
