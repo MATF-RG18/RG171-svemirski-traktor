@@ -11,20 +11,20 @@ Moras izbeci nebeske objekte koji ti dolaze u susret. To je tvoj jedini cilj tre
 
 Svemirski traktor je projekat iz predmeta Grafika na trecoj godini smera Informatika, na Matematickom fakultetu. Projekat je napisan na programskom jeziku C, koriscenjem OpenGL-a i GLUT biblioteke.
 
-Asistent: [Bozidar Antic](http://poincare.matf.bg.ac.rs/~bozidar_antic/)
-Profesor: [Vesna Marinkovic](http://poincare.matf.bg.ac.rs/~vesnap/)
+Asistent: [Bozidar Antic](http://poincare.matf.bg.ac.rs/~bozidar_antic/)\
+Profesor: [Vesna Marinkovic](http://poincare.matf.bg.ac.rs/~vesnap/)\
 
 Kao inspiracija za igru, srecom, nije posluzilo licno iskustvo, vec pesma koju mozete odslusati na
 [ovom linku](https://www.youtube.com/watch?v=M7elc8gHMR0).
 
 ## INSTALACIJA I POKRETANJE
-Potrebne biblioteke za pokretanje aplikacije mozete instalirati komandom:
+Potrebne biblioteke za pokretanje aplikacije mozete instalirati komandom:\
 `sudo apt-get install binutils-gold freeglut3 freeglut3-dev`
 
 Nakon kloniranja ili preuzimanja repozitorijuma, pozicionirati se u tom direktorijumu,
-i izvrsiti sledece komande:
-` make `
-`./svemirski_traktor `
+i izvrsiti sledece komande:\
+` make `\
+`./svemirski_traktor `\
 
 
 
