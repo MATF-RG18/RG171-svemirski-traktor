@@ -19,7 +19,7 @@
 /* Ostale konstante. */
 #define INTERVAL 7
 #define ROAD_TIMER_ID 1
-#define NUM_OF_OBSTACLES 100
+#define NUM_OF_OBSTACLES 95
 
 /* Identifikatori tekstura. */
 static GLuint textures[6];
@@ -56,8 +56,12 @@ static int obstacles_y[NUM_OF_OBSTACLES];
 static int obstacles_z[NUM_OF_OBSTACLES];
 static int obstacles_type[NUM_OF_OBSTACLES];
 
-/* Oznaka za da li je igra u toku ili ne. */
+/* Da li je igra u toku ili ne. */
 static int game_active = 0;
+
+/* Promenljive za cuvanje i ispis rezultata. */
+static int score = 0;
+static char score_string[20];
 
 int main(int argc, char **argv)
 {
@@ -143,8 +147,8 @@ static void initialize(void)
      /* Unistava se objekat za citanje tekstura iz fajla. */
      image_done(image);
 
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
+     glMatrixMode(GL_MODELVIEW);
+     glLoadIdentity();
 }
 
 static void on_keyboard(unsigned char key, int x, int y)
@@ -234,6 +238,8 @@ static void on_display(void)
               0.0, 0.0, 0.0,
               0.0, 1.0, 0.0);
 
+
+
     /* Iscrtavanje neba (pozadine). */
     draw_skyplane(textures[0]);
 
@@ -242,6 +248,12 @@ static void on_display(void)
 
     /* Iscrtavanje prepreka. */
     for(int i = 0; i < NUM_OF_OBSTACLES; i++){
+
+      /* Provera da li nas je prepreka "prosla". Ako da, vracamo je na kraj. */
+      // if(obstacles_x[i] + x_road > 10) obstacles_x[i] -= NUM_OF_OBSTACLES * DISTANCE_BETWEEN_OBSTACLES;
+      /* Ova komanda bi nam trebala da je igra zaista beskonacna. Medjutim,
+       da bi projekat bio "kompletniji" i zabavniji, izbacujemo je zarad salje
+       na racun beskonacnosti svemira. */
       glPushMatrix();
         glTranslatef(obstacles_x[i] + x_road, obstacles_y[i], obstacles_z[i]);
         if(obstacles_type[i] == 0)
@@ -249,19 +261,28 @@ static void on_display(void)
         else
           draw_planet(textures[1 + obstacles_type[i]]);
       glPopMatrix();
+
+      /* Provera kolizije. */
       if(has_crashed(x_tractor, y_tractor, z_tractor, obstacles_x[i] + x_road,
          obstacles_y[i], obstacles_z[i])) {
         game_active = 0;
-        // TODO: Ekran za kraj igre.
+        print_game_over(score_string, window_width, window_height);
       }
     }
 
-    /* Ispisivanje rezultata. */
-    // TODO: Funkcija za ispis teksta i ispis rezultata.
-    
     /* Iscrtavanje traktora. */
     draw_tractor(x_tractor, y_tractor, z_tractor, wheel_rotation);
     wheel_rotation-=1;
+
+    score = (int)x_road - 10;
+    sprintf(score_string, "%d", score);
+    print(score_string, GLUT_BITMAP_TIMES_ROMAN_24, window_width - 80,
+      window_height - 30, 1, 1, 1, window_width, window_height);
+
+    if(x_road > 510) {
+      print_game_won(score_string, window_width, window_height);
+      game_active = 0;
+    }
 
     /* Nova slika se salje na ekran. */
     glutSwapBuffers();
